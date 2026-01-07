@@ -1,195 +1,169 @@
-// src/pages/Dashboard.js
 import { useEffect, useState, useContext } from "react";
 import API from "../api/api";
 import { AuthContext } from "../context/AuthContext";
-import PersonaForm from "../components/PersonaForm";
+import { Link } from "react-router-dom";
+import PageLayout from "../components/PageLayout";
 
 function Dashboard() {
-  const [personas, setPersonas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingPersona, setEditingPersona] = useState(null);
-  const [message, setMessage] = useState("");
-  const { logout } = useContext(AuthContext);
+  const { auth } = useContext(AuthContext);
 
-  const cargarPersonas = () => {
-    setLoading(true);
-    API.get("/personas/")
-      .then((res) => {
-        setPersonas(res.data);
-      })
-      .catch((err) => {
-        console.error("Error obteniendo personas", err);
-        setMessage("Error cargando personas");
-      })
-      .finally(() => setLoading(false));
+  const [stats, setStats] = useState({
+    vacunas: 0,
+    centros: 0,
+    personas: 0,
+    historial: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  const cargarStats = async () => {
+    try {
+      const [vacunasRes, centrosRes, historialRes] = await Promise.all([
+        API.get("/vacunas/"),
+        API.get("/centros/"),
+        API.get("/historial/"),
+      ]);
+
+      let personasCount = 0;
+      try {
+        const personasRes = await API.get("/personas/");
+        personasCount = personasRes.data.length;
+      } catch {
+        personasCount = 0;
+      }
+
+      setStats({
+        vacunas: vacunasRes.data.length,
+        centros: centrosRes.data.length,
+        personas: personasCount,
+        historial: historialRes.data.length,
+      });
+    } catch (err) {
+      console.log("Error cargando stats:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    cargarPersonas();
+    cargarStats();
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    window.location.href = "/";
+  const saludoPorRol = () => {
+    if (auth.rol === "admin") return "Administración del sistema";
+    if (auth.rol === "medico") return "Gestión clínica y registros";
+    if (auth.rol === "padre") return "Consulta y seguimiento";
+    return "Bienvenido";
   };
 
-  // Crear nueva persona
-  const handleCreate = async (values) => {
-    setMessage("");
-    try {
-      await API.post("/personas/", {
-        nombres: values.nombres,
-        apellidos: values.apellidos,
-        numero_documento: values.numero_documento,
-        rol: values.rol || "usuario",
-        password: values.password,
-      });
-      setMessage("Persona registrada correctamente");
-      cargarPersonas();
-    } catch (err) {
-      console.error("Error creando persona", err);
-      setMessage("Error creando persona (¿documento duplicado?)");
-    }
-  };
-
-  // Guardar edición
-  const handleUpdate = async (values) => {
-    if (!editingPersona) return;
-    setMessage("");
-    try {
-      await API.put(`/personas/${editingPersona.id_persona}`, {
-        nombres: values.nombres,
-        apellidos: values.apellidos,
-        rol: values.rol,
-      });
-      setMessage("Persona actualizada correctamente");
-      setEditingPersona(null);
-      cargarPersonas();
-    } catch (err) {
-      console.error("Error actualizando persona", err);
-      setMessage("Error actualizando persona");
-    }
-  };
-
-  // Eliminar (desactivar)
-  const handleDelete = async (id_persona) => {
-    const confirmar = window.confirm(
-      "¿Seguro que deseas desactivar esta persona?"
-    );
-    if (!confirmar) return;
-
-    setMessage("");
-    try {
-      await API.delete(`/personas/${id_persona}`);
-      setMessage("Persona desactivada correctamente");
-      cargarPersonas();
-    } catch (err) {
-      console.error("Error desactivando persona", err);
-      setMessage("Error desactivando persona");
-    }
-  };
+  const right = (
+    <span className="badge text-bg-primary px-3 py-2">
+      Rol: <span className="fw-semibold">{auth.rol}</span>
+    </span>
+  );
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div>
-          <div className="sidebar-title">Vacunación</div>
-          <div className="sidebar-item active">Personas</div>
-          <div className="sidebar-item">Centros de salud</div>
-          <div className="sidebar-item">Vacunas</div>
-          <div className="sidebar-item">Historial</div>
+    <PageLayout title="Dashboard" subtitle={saludoPorRol()} right={right}>
+      <div className="row g-3 mb-4">
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <p className="text-muted mb-1">Vacunas</p>
+              <h3 className="fw-bold mb-0">{loading ? "..." : stats.vacunas}</h3>
+              <Link to="/vacunas" className="btn btn-sm btn-outline-primary mt-3">
+                Ver módulo
+              </Link>
+            </div>
+          </div>
         </div>
-      </aside>
 
-      <main className="main-content">
-        <header className="main-header">
-          <div>
-            <h1 className="main-title">Panel de Personas</h1>
-            <p className="main-subtitle">
-              Gestión de usuarios/personas del sistema de vacunación
-            </p>
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <p className="text-muted mb-1">Centros</p>
+              <h3 className="fw-bold mb-0">{loading ? "..." : stats.centros}</h3>
+              <Link to="/centros" className="btn btn-sm btn-outline-primary mt-3">
+                Ver módulo
+              </Link>
+            </div>
           </div>
+        </div>
 
-          <button className="btn-secondary" onClick={handleLogout}>
-            Cerrar sesión
-          </button>
-        </header>
-
-        {message && (
-          <div
-            className="card"
-            style={{ marginBottom: 14, borderLeft: "4px solid #22c55e" }}
-          >
-            <p style={{ fontSize: "0.9rem" }}>{message}</p>
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <p className="text-muted mb-1">Personas</p>
+              <h3 className="fw-bold mb-0">{loading ? "..." : stats.personas}</h3>
+              <Link to="/personas" className="btn btn-sm btn-outline-primary mt-3">
+                Ver módulo
+              </Link>
+              {auth.rol === "padre" && (
+                <small className="text-muted d-block mt-2">
+                  *Tu rol no lista todas las personas.
+                </small>
+              )}
+            </div>
           </div>
-        )}
+        </div>
 
-        {/* Tarjeta para crear o editar */}
-        <section className="card">
-          <h2 className="card-title">
-            {editingPersona ? "Editar persona" : "Registrar nueva persona"}
-          </h2>
+        <div className="col-12 col-md-6 col-lg-3">
+          <div className="card border-0 shadow-sm h-100">
+            <div className="card-body">
+              <p className="text-muted mb-1">Historial</p>
+              <h3 className="fw-bold mb-0">{loading ? "..." : stats.historial}</h3>
+              <Link to="/historial" className="btn btn-sm btn-outline-primary mt-3">
+                Ver módulo
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <PersonaForm
-            initialValues={editingPersona}
-            onSubmit={editingPersona ? handleUpdate : handleCreate}
-            onCancel={() => setEditingPersona(null)}
-            isEditing={!!editingPersona}
-          />
-        </section>
+      <div className="row g-3">
+        <div className="col-12 col-lg-8">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <h5 className="fw-bold">Acciones rápidas</h5>
+              <p className="text-muted">
+                Accede a los módulos principales del sistema.
+              </p>
 
-        {/* Lista de personas */}
-        <section className="card">
-          <h2 className="card-title">Personas registradas</h2>
+              <div className="d-flex flex-wrap gap-2">
+                <Link to="/vacunas" className="btn btn-primary">
+                  Vacunas
+                </Link>
+                <Link to="/centros" className="btn btn-outline-primary">
+                  Centros
+                </Link>
+                <Link to="/historial" className="btn btn-outline-primary">
+                  Historial
+                </Link>
 
-          {loading ? (
-            <p style={{ fontSize: "0.9rem", color: "#6b7280" }}>
-              Cargando...
-            </p>
-          ) : personas.length === 0 ? (
-            <p style={{ fontSize: "0.9rem", color: "#6b7280" }}>
-              No hay personas registradas.
-            </p>
-          ) : (
-            <ul className="person-list">
-              {personas.map((p) => (
-                <li key={p.id_persona} className="person-item">
-                  <div>
-                    <div className="person-name">
-                      {p.nombres} {p.apellidos}
-                    </div>
-                    <div className="person-doc">
-                      Documento: {p.numero_documento} · Rol: {p.rol}
-                    </div>
-                  </div>
+                {(auth.rol === "admin" || auth.rol === "medico") && (
+                  <Link to="/personas" className="btn btn-outline-dark">
+                    Personas
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
 
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button
-                      className="btn-secondary"
-                      style={{ fontSize: "0.75rem" }}
-                      onClick={() => setEditingPersona(p)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="btn-secondary"
-                      style={{
-                        fontSize: "0.75rem",
-                        background: "#fee2e2",
-                        color: "#b91c1c",
-                      }}
-                      onClick={() => handleDelete(p.id_persona)}
-                    >
-                      Desactivar
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </main>
-    </div>
+        <div className="col-12 col-lg-4">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body">
+              <h6 className="fw-bold mb-2">Estado del sistema</h6>
+              <div className="alert alert-success py-2 mb-0" role="alert">
+                ✅ Conectado y funcionando
+              </div>
+              <small className="text-muted d-block mt-2">
+                *Datos desde rutas protegidas.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </PageLayout>
   );
 }
 

@@ -1,21 +1,22 @@
 import { createContext, useState } from "react";
+import { setAuthToken } from "../api/api";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState({
-    token: localStorage.getItem("token") || null,
-    user: null,
+    token: null,
+    rol: null,
   });
 
-  const login = (token) => {
-    localStorage.setItem("token", token);
-    setAuth({ token });
+  const login = (token, rol) => {
+    setAuth({ token, rol });
+    setAuthToken(token);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    setAuth({ token: null });
+    setAuth({ token: null, rol: null });
+    setAuthToken(null);
   };
 
   return (
@@ -24,3 +25,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
