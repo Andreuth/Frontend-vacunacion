@@ -1,123 +1,50 @@
-🧩 Sistema de Vacunación – FRONTEND (React)
+SISCONI – Frontend
 
-Este frontend está desarrollado con React y consume la API REST del backend.
-Incluye autenticación, gestión de sesión con Context API y CRUD de personas.
+Frontend del sistema SISCONI desarrollado con React y Bootstrap.
 
-🚀 Tecnologías utilizadas
+TECNOLOGÍAS
+- React (Vite)
+- Axios
+- React Router DOM
+- Bootstrap 5
 
-React (Create React App)
+INSTALACIÓN
+1. Instalar dependencias
+   npm install
 
-Axios
+2. Ejecutar
+   npm run dev
 
-React Router DOM
+Servidor:
+http://localhost:5173
 
-Context API
+CONEXIÓN BACKEND
+En src/api/axios.js:
+baseURL: http://127.0.0.1:8000
 
-CSS personalizado
+FLUJO DE USUARIOS
+ADMIN -> /admin
+PEDIATRA -> /pediatric
+REPRESENTANTE -> /representative
 
-📁 Estructura del proyecto
-frontend/
-│
-├── src/
-│   ├── api/             # Axios configurado
-│   ├── components/      # Form Persona
-│   ├── context/         # AuthContext
-│   ├── pages/           # Login + Dashboard
-│   ├── App.js
-│   ├── index.js
-│   └── index.css
-│
-├── .env
-├── package.json
+FUNCIONALIDADES
+ADMIN:
+- Gestión de usuarios
+- Gestión de vacunas
+- Supervisión general
 
-⚙️ Instalación
-1️⃣ Instalar dependencias
-cd frontend
-npm install
+PEDIATRA:
+- Registro rápido de niños
+- Creación de visitas
+- Aplicación de vacunas
 
-2️⃣ Archivo .env
+REPRESENTANTE:
+- Consulta de hijos
+- Historial
+- Próximas vacunas
 
-Crear en frontend/.env:
+IMPRESIÓN
+Las vistas incluyen botón imprimir usando window.print().
 
-REACT_APP_API_URL=http://127.0.0.1:8000
-
-
-React solo lee .env al iniciar → reinicia con npm start.
-
-▶️ Ejecutar aplicación
-npm start
-
-
-Abrir en navegador:
-
-👉 http://localhost:3000
-
-🔐 Autenticación
-
-El login envía:
-
-POST /auth/login
-
-
-Campos:
-
-username (numero_documento)
-
-password
-
-Si es exitoso:
-
-Guarda token en localStorage
-
-Redirige al Dashboard
-
-Todas las peticiones internas usan:
-
-Authorization: Bearer <token>
-
-👤 CRUD completo de Persona (desde React)
-
-Incluye:
-
-✔ Crear persona
-✔ Listar personas
-✔ Editar persona
-✔ Desactivar persona
-
-Todo conectado al backend con Axios.
-
-🖼️ Interfaz del Usuario
-
-Pantalla de Login con diseño moderno
-
-Dashboard con:
-
-Sidebar de navegación
-
-Lista de personas
-
-Formulario de creación
-
-Formulario de edición
-
-Botón para eliminar/desactivar
-
-🔧 Scripts
-npm start     # Ejecutar en desarrollo
-npm run build # Crear build de producción
-
-🧾 Estado del frontend
-
-✔ Login funcionando
-✔ Token guardado en localStorage
-✔ Axios configurado globalmente
-✔ Dashboard privado
-✔ CRUD de Personas completo
-✔ Estilos modernos
-✔ Listo para entrega
-
-✍️ Autores
-
-(Coloca nombres del grupo)
-
-📗 FIN DEL README DEL FRONTEND
+PROYECTO
+Sistema académico para la digitalización del control de vacunación infantil.
