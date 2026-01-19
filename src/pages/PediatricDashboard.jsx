@@ -40,7 +40,7 @@ export default function PediatricDashboard() {
   const load = async () => {
     try {
       const [c, s] = await Promise.all([
-        api.get("/children"),
+        api.get("/children/"),
         api.get("/vaccines/schedule/full"),   // 🔥 endpoint nuevo
       ]);
       setChildren(c.data);
@@ -61,7 +61,7 @@ export default function PediatricDashboard() {
     e.preventDefault();
     setRegMsg("");
     try {
-      const res = await api.post("/children/register", reg);
+      const res = await api.post("/children/register/", reg);
       setRegMsg(`✅ Registrado: representante_id=${res.data.representante_id}, nino_id=${res.data.nino_id}`);
       await load();
     } catch (e) {
@@ -82,7 +82,7 @@ export default function PediatricDashboard() {
         peso_kg: Number(visitForm.peso_kg),
         talla_cm: Number(visitForm.talla_cm),
       };
-      const res = await api.post("/visits", payload);
+      const res = await api.post("/visits/", payload);
       setVisitMsg(`✅ Visita creada. ID=${res.data.id}`);
       setApplyForm({ ...applyForm, visit_id: String(res.data.id) });
     } catch (e) {
