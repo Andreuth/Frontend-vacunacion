@@ -62,10 +62,10 @@ export default function AdminDashboard() {
   const loadAll = async () => {
     try {
       const [u, v, sch, c] = await Promise.all([
-        api.get("/users"),
-        api.get("/vaccines"),
+        api.get("/users/"),
+        api.get("/vaccines/"),
         api.get("/vaccines/schedule/full"),
-        api.get("/children"),
+        api.get("/children/"),
       ]);
       setUsers(u.data);
       setVaccines(v.data);
