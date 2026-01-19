@@ -2,6 +2,8 @@ import axios from "axios";
 
 const raw = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
+console.log("VITE_API_URL =", raw);
+
 // fuerza https cuando el sitio está en https (Vercel)
 const baseURL =
   window.location.protocol === "https:" ? raw.replace(/^http:\/\//, "https://") : raw;
