@@ -85,7 +85,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setUMsg("");
     try {
-      const res = await api.post("/users", uForm);
+      const res = await api.post("/users/", uForm);
       setUMsg("✅ Usuario creado");
       setUForm({ nombres: "", apellidos: "", numero_documento: "", rol: "REPRESENTANTE", password: "" });
       setUsers([res.data, ...users]);
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setVMsg("");
     try {
-      const res = await api.post("/vaccines", vForm);
+      const res = await api.post("/vaccines/", vForm);
       setVMsg("✅ Vacuna creada");
       setVForm({ nombre: "", descripcion: "" });
       setVaccines([res.data, ...vaccines]);
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
         edad_objetivo_meses: Number(sForm.edad_objetivo_meses),
         intervalo_min_dias: sForm.intervalo_min_dias === "" ? null : Number(sForm.intervalo_min_dias),
       };
-      await api.post("/vaccines/schedule", payload);
+      await api.post("/vaccines/schedule/", payload);
       setSMsg("✅ Dosis agregada al esquema");
       await loadAll();
     } catch (e) {
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     setRegMsg("");
     try {
-      const res = await api.post("/children/register", reg);
+      const res = await api.post("/children/register/", reg);
       setRegMsg(`✅ Registrado: representante_id=${res.data.representante_id}, nino_id=${res.data.nino_id}`);
       await loadAll();
     } catch (e) {
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
         peso_kg: Number(visitForm.peso_kg),
         talla_cm: Number(visitForm.talla_cm),
       };
-      const res = await api.post("/visits", payload);
+      const res = await api.post("/visits/", payload);
       setVisitMsg(`✅ Visita creada. ID=${res.data.id}`);
       setApplyForm({ ...applyForm, visit_id: String(res.data.id) });
     } catch (e) {
