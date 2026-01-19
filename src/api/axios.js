@@ -1,10 +1,10 @@
 import axios from "axios";
 
-const rawBase = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const raw = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-// si estamos en vercel/https, fuerza https
+// fuerza https cuando el sitio está en https (Vercel)
 const baseURL =
-  window.location.protocol === "https:" ? rawBase.replace("http://", "https://") : rawBase;
+  window.location.protocol === "https:" ? raw.replace(/^http:\/\//, "https://") : raw;
 
 const api = axios.create({ baseURL });
 
