@@ -56,7 +56,7 @@ export default function Login() {
               >
                 <i className="bi bi-shield-check fs-3"></i>
               </div>
-              <h3 className="fw-bold mb-1">SISCONI</h3>
+              <h3 className="fw-bold mb-1">SISCON-I</h3>
               <div className="text-muted">
                 Sistema de control de vacunación infantil
               </div>

@@ -1,29 +1,84 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import PediatricDashboard from "./pages/PediatricDashboard";
 import RepresentativeDashboard from "./pages/RepresentativeDashboard";
-import ChildHistory from "./pages/ChildHistory";
+import RegisterChild from "./pages/RegisterChild";
 import ChildNextVaccines from "./pages/ChildNextVaccines";
+import ChildHistory from "./pages/ChildHistory";
+
+import "./App.css";
 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
 
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/pediatric" element={<PediatricDashboard />} />
+        {/* Admin */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={["ADMIN"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route path="/representative" element={<RepresentativeDashboard />} />
-          <Route path="/representative/history/:childId" element={<ChildHistory />} />
-          <Route path="/representative/next/:childId" element={<ChildNextVaccines />} />
+        {/* Pediatra */}
+        <Route
+          path="/pediatric"
+          element={
+            <ProtectedRoute roles={["ADMIN", "PEDIATRA"]}>
+              <PediatricDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route path="/" element={<Navigate to="/login" />} />
-        </Routes>
-      </BrowserRouter>
+        {/* Representante */}
+        <Route
+          path="/representative"
+          element={
+            <ProtectedRoute roles={["ADMIN", "REPRESENTANTE"]}>
+              <RepresentativeDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/children/register"
+          element={
+            <ProtectedRoute roles={["ADMIN", "REPRESENTANTE"]}>
+              <RegisterChild />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Child detail */}
+        <Route
+          path="/children/:childId/next-vaccines"
+          element={
+            <ProtectedRoute roles={["ADMIN", "PEDIATRA", "REPRESENTANTE"]}>
+              <ChildNextVaccines />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/children/:childId/history"
+          element={
+            <ProtectedRoute roles={["ADMIN", "PEDIATRA", "REPRESENTANTE"]}>
+              <ChildHistory />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </AuthProvider>
   );
 }
