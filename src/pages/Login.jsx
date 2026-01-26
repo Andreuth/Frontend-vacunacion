@@ -79,7 +79,7 @@ export default function Login() {
                     </div>
                   </div>
 
-                  <h2 className="fw-bold mb-2">SISCONI</h2>
+                  <h2 className="fw-bold mb-2">SISCON-I</h2>
                   <div className="mb-3" style={{ opacity: 0.92 }}>
                     Sistema para registrar, monitorear y consultar el esquema de vacunación
                     del niño con historial de atenciones y próximas dosis.
