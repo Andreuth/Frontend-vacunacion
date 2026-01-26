@@ -1,91 +1,83 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import api from "../api/axios";
-import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
+import Navbar from "../components/Navbar";
 
 export default function ChildNextVaccines() {
   const { childId } = useParams();
-  const [rows, setRows] = useState([]);
-  const [child, setChild] = useState(null);
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
-
-  const badge = (estado) => {
-    const e = String(estado || "").toUpperCase();
-    const cls =
-      e === "ATRASADA" ? "badge bg-danger" :
-      e === "PENDIENTE" ? "badge bg-warning text-dark" :
-      e === "APLICADA" ? "badge bg-success" :
-      "badge bg-secondary";
-    return <span className={cls}>{e || "—"}</span>;
-  };
-
-
-  const load = async () => {
-    setLoading(true);
-    setErr("");
-    try {
-      // Intentamos obtener el niño desde /children/ para mostrar encabezado
-      const [next, allChildren] = await Promise.all([
-        api.get(`/children/${childId}/next-vaccines`),
-        api.get("/children/"),
-      ]);
-      setRows(next.data?.items || next.data || []);
-      const found = (allChildren.data || []).find((c) => String(c.id) === String(childId));
-      setChild(found || null);
-    } catch (e) {
-      setErr(e?.response?.data?.detail || "No se pudo cargar próximas vacunas");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    load();
+    (async () => {
+      setError("");
+      try {
+        const res = await api.get(`/children/${childId}/next-vaccines`);
+        setItems(res.data.items || []);
+      } catch (e) {
+        setError(e?.response?.data?.detail || "Error cargando próximas vacunas");
+      }
+    })();
   }, [childId]);
 
   return (
-    <AppLayout title="Próximas vacunas">
-      {err && <div className="alert alert-danger">{err}</div>}
-
-      <div className="bg-white shadow-sm p-3 mb-3" style={{ borderRadius: 16 }}>
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <div className="fw-bold">{child ? `${child.nombres} ${child.apellidos}` : `Niño #${childId}`}</div>
-            <div className="text-muted small">Próximas dosis recomendadas según el esquema.</div>
-          </div>
+    <>
+      <Navbar />
+      <div className="container py-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h4>Próximas vacunas</h4>
           <div className="d-flex gap-2">
-            <button className="btn btn-outline-secondary btn-sm" onClick={load}>
-              Recargar
+            <button className="btn btn-outline-secondary btn-sm" onClick={() => window.print()}>
+              Imprimir
             </button>
-            <Link className="btn btn-outline-primary btn-sm" to={`/children/${childId}/history`}>
-              Ver cartilla
+            <Link className="btn btn-outline-dark btn-sm" to="/representative">
+              Volver
             </Link>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white shadow-sm p-3" style={{ borderRadius: 16 }}>
-        {loading ? (
-          <div className="text-muted">Cargando...</div>
-        ) : (
-          <DataTablele
-            rows={rows}
-            searchPlaceholder="Buscar..."
-            columns={[
-              { key: "vaccine_nombre", header: "Vacuna" },
-              { key: "dosis_numero", header: "Dosis" },
-              { key: "edad_objetivo_meses", header: "Edad objetivo (m)" },
-              { key: "intervalo_min_dias", header: "Intervalo (d)" },
-              { key: "status", header: "Estado" },
-            ]}
-          />
-        )}
-        <div className="text-muted small mt-2">
-          Si el backend devuelve otros nombres de campos, dime el JSON de una fila y ajustamos el frontend rápido.
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <div className="table-responsive">
+              <table className="table table-sm table-striped">
+                <thead>
+                  <tr>
+                    <th>Vacuna</th>
+                    <th>Dosis</th>
+                    <th>Edad objetivo (meses)</th>
+                    <th>Fecha recomendada</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((x) => (
+                    <tr key={x.schedule_id}>
+                      <td>{x.vaccine_nombre}</td>
+                      <td>{x.dosis_numero}</td>
+                      <td>{x.edad_objetivo_meses}</td>
+                      <td>{x.fecha_recomendada}</td>
+                      <td>
+                        <span className={`badge ${x.estado === "ATRASADA" ? "text-bg-danger" : "text-bg-success"}`}>
+                          {x.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {items.length === 0 && !error && (
+                    <tr>
+                      <td colSpan="5" className="text-muted">
+                        No hay vacunas pendientes 🎉
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   );
 }

@@ -1,25 +1,20 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import AppLayout from "../components/AppLayout";
-import DataTable from "../components/DataTable";
+import Navbar from "../components/Navbar";
 
 export default function RepresentativeDashboard() {
   const [children, setChildren] = useState([]);
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const load = async () => {
-    setLoading(true);
-    setErr("");
+    setError("");
     try {
       const res = await api.get("/children/my");
-      setChildren(res.data || []);
+      setChildren(res.data);
     } catch (e) {
-      setErr(e?.response?.data?.detail || "No se pudo cargar tus hijos");
-    } finally {
-      setLoading(false);
+      setError(e?.response?.data?.detail || "Error cargando niños");
     }
   };
 
@@ -27,57 +22,52 @@ export default function RepresentativeDashboard() {
     load();
   }, []);
 
-  return (
-    <AppLayout title="Panel REPRESENTANTE">
-      {err && <div className="alert alert-danger">{err}</div>}
+  const goHistory = (childId) => navigate(`/representative/history/${childId}`);
+  const goNext = (childId) => navigate(`/representative/next/${childId}`);
 
-      <div className="bg-white shadow-sm p-3 mb-3" style={{ borderRadius: 16 }}>
-        <div className="d-flex justify-content-between align-items-center">
-          <div>
-            <div className="fw-bold">Mis hijos</div>
-            <div className="text-muted small">Consulta próximas vacunas e historial, y descarga la cartilla.</div>
-          </div>
-          <div className="d-flex gap-2">
-            <button className="btn btn-outline-primary btn-sm" onClick={() => navigate("/children/register")}>
-              + Registrar niño
-            </button>
-            <button className="btn btn-outline-secondary btn-sm" onClick={load}>
-              Recargar
-            </button>
-          </div>
+  return (
+    <>
+      <Navbar />
+      <div className="container py-4">
+        <h4 className="mb-3">Mis hijos</h4>
+
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        <div className="row g-3">
+          {children.map((c) => (
+            <div className="col-md-6" key={c.id}>
+              <div className="card shadow-sm">
+                <div className="card-body">
+                  <h5 className="card-title">
+                    {c.nombres} {c.apellidos}
+                  </h5>
+                  <p className="card-text mb-2">
+                    <strong>Documento:</strong> {c.numero_documento} <br />
+                    <strong>Sexo:</strong> {c.sexo} <br />
+                    <strong>Nacimiento:</strong> {c.fecha_nacimiento}
+                  </p>
+
+                  <div className="d-flex gap-2">
+                    <button className="btn btn-outline-primary btn-sm" onClick={() => goHistory(c.id)}>
+                      Historial
+                    </button>
+                    <button className="btn btn-outline-success btn-sm" onClick={() => goNext(c.id)}>
+                      Próximas vacunas
+                    </button>
+                    <button className="btn btn-outline-secondary btn-sm" onClick={() => window.print()}>
+                      Imprimir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {children.length === 0 && !error && (
+            <div className="text-muted">No tienes niños asociados.</div>
+          )}
         </div>
       </div>
-
-      <div className="bg-white shadow-sm p-3" style={{ borderRadius: 16 }}>
-        {loading ? (
-          <div className="text-muted">Cargando...</div>
-        ) : (
-          <DataTable
-            rows={children}
-            searchPlaceholder="Buscar por nombre..."
-            columns={[
-              { key: "id", header: "ID" },
-              { key: "nombres", header: "Nombres" },
-              { key: "apellidos", header: "Apellidos" },
-              { key: "fecha_nacimiento", header: "Nacimiento" },
-              {
-                key: "actions",
-                header: "Acciones",
-                render: (r) => (
-                  <div className="d-flex gap-2">
-                    <Link className="btn btn-sm btn-outline-primary" to={`/children/${r.id}/next-vaccines`}>
-                      Próximas
-                    </Link>
-                    <Link className="btn btn-sm btn-outline-secondary" to={`/children/${r.id}/history`}>
-                      Cartilla/Historial
-                    </Link>
-                  </div>
-                ),
-              },
-            ]}
-          />
-        )}
-      </div>
-    </AppLayout>
+    </>
   );
 }
