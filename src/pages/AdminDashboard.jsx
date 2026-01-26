@@ -141,6 +141,16 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [globalMsg, setGlobalMsg] = useState({ type: "", text: "" }); // success|info|danger
 
+  // ===== REP global analytics (ADMIN viendo representante)
+const [repGlobalLoading, setRepGlobalLoading] = useState(false);
+const [repGlobalRows, setRepGlobalRows] = useState([]); 
+// row: { child_id, nombres, apellidos, sexo, numero_documento, vaccine_nombre, dosis_numero, edad_objetivo_meses, fecha_recomendada, estado, dias_diferencia }
+
+const [repGlobalEstado, setRepGlobalEstado] = useState("ATRASADA"); // ATRASADA | PENDIENTE | AL_DIA | ALL
+const [repGlobalSexo, setRepGlobalSexo] = useState("ALL"); // ALL | M | F | OTRO
+const [repGlobalQuery, setRepGlobalQuery] = useState("");
+
+
   // ===== ADMIN: USERS =====
   const [users, setUsers] = useState([]);
   const [uForm, setUForm] = useState({
@@ -337,6 +347,74 @@ export default function AdminDashboard() {
   const histMeta = useMemo(() => paginate(historyFiltered, histPage, histPageSize), [historyFiltered, histPage, histPageSize]);
 
   useEffect(() => setHistPage(1), [histQuery, histPageSize]);
+
+  // limitar concurrencia para no saturar el backend
+async function mapLimit(list, limit, asyncFn) {
+  const ret = [];
+  const executing = [];
+  for (const item of list) {
+    const p = Promise.resolve().then(() => asyncFn(item));
+    ret.push(p);
+
+    if (limit <= list.length) {
+      const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+      executing.push(e);
+      if (executing.length >= limit) await Promise.race(executing);
+    }
+  }
+  return Promise.all(ret);
+}
+
+const buildGlobalRepRows = async () => {
+  setRepGlobalLoading(true);
+  setRepMsg("");
+  try {
+    // children ya está en tu estado por loadAll()
+    const allChildren = children || [];
+    if (allChildren.length === 0) {
+      setRepGlobalRows([]);
+      notify("info", "No hay niños para analizar.");
+      return;
+    }
+
+    // 🔥 consulta next-vaccines por cada niño (concurrencia 6)
+    const results = await mapLimit(allChildren, 6, async (c) => {
+      const res = await api.get(`/children/${c.id}/next-vaccines`);
+      const items = res.data?.items || [];
+      return { child: c, items };
+    });
+
+    // flatten
+    const rows = [];
+    for (const r of results) {
+      for (const x of r.items) {
+        rows.push({
+          child_id: r.child.id,
+          nombres: r.child.nombres,
+          apellidos: r.child.apellidos,
+          sexo: r.child.sexo,
+          numero_documento: r.child.numero_documento,
+          vaccine_nombre: x.vaccine_nombre,
+          dosis_numero: x.dosis_numero,
+          edad_objetivo_meses: x.edad_objetivo_meses,
+          fecha_recomendada: x.fecha_recomendada,
+          estado: x.estado,
+          dias_diferencia: x.dias_diferencia,
+        });
+      }
+    }
+
+    setRepGlobalRows(rows);
+    notify("success", `Análisis listo: ${rows.length} registro(s) encontrados.`);
+  } catch (e) {
+    const msg = e?.response?.data?.detail || "Error analizando pendientes globales";
+    setRepMsg(msg);
+    notify("danger", msg);
+  } finally {
+    setRepGlobalLoading(false);
+  }
+};
+
 
   /* ===================== Actions ===================== */
   const createUser = async (e) => {
@@ -565,6 +643,59 @@ export default function AdminDashboard() {
     }
     downloadCSV("historial.csv", rows);
   };
+  const exportRepGlobal = () => {
+  const rows = repGlobalFiltered.map((r) => ({
+    child_id: r.child_id,
+    nombres: r.nombres,
+    apellidos: r.apellidos,
+    sexo: r.sexo,
+    numero_documento: r.numero_documento,
+    vacuna: r.vaccine_nombre,
+    dosis: r.dosis_numero,
+    edad_meses: r.edad_objetivo_meses,
+    fecha_recomendada: r.fecha_recomendada,
+    estado: r.estado,
+    dias_diferencia: r.dias_diferencia ?? "",
+  }));
+  downloadCSV("reporte_pendientes_global.csv", rows);
+};
+
+
+  const repGlobalFiltered = useMemo(() => {
+  let rows = repGlobalRows || [];
+
+  // filtro estado
+  if (repGlobalEstado !== "ALL") {
+    if (repGlobalEstado === "AL_DIA") {
+      rows = rows.filter((r) => r.estado !== "ATRASADA");
+    } else {
+      rows = rows.filter((r) => r.estado === repGlobalEstado);
+    }
+  }
+
+  // filtro sexo
+  if (repGlobalSexo !== "ALL") {
+    rows = rows.filter((r) => String(r.sexo || "").toUpperCase() === repGlobalSexo);
+  }
+
+  // search
+  const q = repGlobalQuery.trim().toLowerCase();
+  if (q) {
+    rows = rows.filter((r) => {
+      const s = `${r.nombres} ${r.apellidos} ${r.numero_documento} ${r.vaccine_nombre} ${r.estado} ${r.dosis_numero} ${r.edad_objetivo_meses}`.toLowerCase();
+      return s.includes(q);
+    });
+  }
+
+  // orden: primero atrasadas y por fecha
+  rows = [...rows].sort((a, b) => {
+    if (a.estado !== b.estado) return a.estado === "ATRASADA" ? -1 : 1;
+    return String(a.fecha_recomendada || "").localeCompare(String(b.fecha_recomendada || ""));
+  });
+
+  return rows;
+}, [repGlobalRows, repGlobalEstado, repGlobalSexo, repGlobalQuery]);
+
 
   /* ===================== Render ===================== */
   return (
@@ -1100,6 +1231,165 @@ export default function AdminDashboard() {
               </div>
               {repMsg && <div className="alert alert-info py-2 mt-3">{repMsg}</div>}
             </Section>
+            <Section
+  title="Analítica global (ADMIN)"
+  subtitle="Detecta vacunas ATRASADAS / PENDIENTES por todos los niños (filtra y exporta)."
+  right={
+    <div className="d-flex gap-2 flex-wrap">
+      <button
+        className="btn btn-warning btn-sm"
+        type="button"
+        onClick={buildGlobalRepRows}
+        disabled={repGlobalLoading || (children?.length || 0) === 0}
+      >
+        {repGlobalLoading ? "Analizando..." : "Analizar pendientes globales"}
+      </button>
+
+      <button
+        className="btn btn-outline-dark btn-sm"
+        type="button"
+        onClick={exportRepGlobal}
+        disabled={repGlobalLoading || repGlobalFiltered.length === 0}
+      >
+        Exportar reporte CSV
+      </button>
+
+      <button
+        className="btn btn-outline-secondary btn-sm"
+        type="button"
+        onClick={() => {
+          setRepGlobalRows([]);
+          setRepGlobalQuery("");
+          setRepGlobalSexo("ALL");
+          setRepGlobalEstado("ATRASADA");
+          notify("info", "Analítica global limpiada.");
+        }}
+        disabled={repGlobalLoading}
+      >
+        Limpiar
+      </button>
+    </div>
+  }
+>
+  <div className="row g-2 align-items-end">
+    <div className="col-md-4">
+      <label className="form-label small text-muted">Buscar</label>
+      <input
+        className="form-control form-control-sm"
+        value={repGlobalQuery}
+        onChange={(e) => setRepGlobalQuery(e.target.value)}
+        placeholder="Niño, documento, vacuna..."
+      />
+    </div>
+
+    <div className="col-md-3">
+      <label className="form-label small text-muted">Estado</label>
+      <select
+        className="form-select form-select-sm"
+        value={repGlobalEstado}
+        onChange={(e) => setRepGlobalEstado(e.target.value)}
+      >
+        <option value="ATRASADA">ATRASADAS</option>
+        <option value="PENDIENTE">PENDIENTES</option>
+        <option value="AL_DIA">AL DÍA</option>
+        <option value="ALL">TODAS</option>
+      </select>
+    </div>
+
+    <div className="col-md-2">
+      <label className="form-label small text-muted">Sexo</label>
+      <select
+        className="form-select form-select-sm"
+        value={repGlobalSexo}
+        onChange={(e) => setRepGlobalSexo(e.target.value)}
+      >
+        <option value="ALL">Todos</option>
+        <option value="M">M</option>
+        <option value="F">F</option>
+        <option value="OTRO">OTRO</option>
+      </select>
+    </div>
+
+    <div className="col-md-3">
+      <div className="small text-muted mb-1">Resumen</div>
+      <div className="d-flex gap-2 flex-wrap">
+        <span className="badge text-bg-danger">
+          Atrasadas: {repGlobalRows.filter((r) => r.estado === "ATRASADA").length}
+        </span>
+        <span className="badge text-bg-warning text-dark">
+          Pendientes: {repGlobalRows.filter((r) => r.estado === "PENDIENTE").length}
+        </span>
+        <span className="badge text-bg-success">
+          Al día: {repGlobalRows.filter((r) => r.estado !== "ATRASADA").length}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div className="table-responsive mt-3">
+    <table className="table table-sm table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Niño</th>
+          <th>Doc</th>
+          <th>Sexo</th>
+          <th>Vacuna</th>
+          <th>Dosis</th>
+          <th>Edad (m)</th>
+          <th>Fecha recomendada</th>
+          <th>Estado</th>
+          <th>Días</th>
+        </tr>
+      </thead>
+      <tbody>
+        {repGlobalFiltered.map((r, idx) => (
+          <tr key={`${r.child_id}-${r.vaccine_nombre}-${r.dosis_numero}-${idx}`}>
+            <td className="fw-semibold">
+              {r.nombres} {r.apellidos}
+            </td>
+            <td className="text-muted">{r.numero_documento}</td>
+            <td>{r.sexo}</td>
+            <td>{r.vaccine_nombre}</td>
+            <td>{r.dosis_numero}</td>
+            <td>{r.edad_objetivo_meses}</td>
+            <td>{fmtDate(r.fecha_recomendada)}</td>
+            <td>
+              <span
+                className={`badge ${
+                  r.estado === "ATRASADA"
+                    ? "text-bg-danger"
+                    : r.estado === "PENDIENTE"
+                    ? "text-bg-warning text-dark"
+                    : "text-bg-success"
+                }`}
+              >
+                {r.estado}
+              </span>
+            </td>
+            <td className="text-muted">{r.dias_diferencia ?? "-"}</td>
+          </tr>
+        ))}
+
+        {repGlobalRows.length === 0 && (
+          <tr>
+            <td colSpan="9" className="text-muted">
+              Presiona <strong>“Analizar pendientes globales”</strong> para generar el reporte.
+            </td>
+          </tr>
+        )}
+
+        {repGlobalRows.length > 0 && repGlobalFiltered.length === 0 && (
+          <tr>
+            <td colSpan="9" className="text-muted">
+              Sin resultados con esos filtros.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</Section>
+
 
             <Section
               title="Próximas vacunas"
