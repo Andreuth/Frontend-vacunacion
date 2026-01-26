@@ -191,3 +191,10 @@
   font-size: 11px;
   color: var(--muted);
 }
+
+/* Separación extra antes de la cartilla */
+@media print {
+  #print-area {
+    margin-top: 25mm; /* separación clara desde el contenido previo */
+  }
+}

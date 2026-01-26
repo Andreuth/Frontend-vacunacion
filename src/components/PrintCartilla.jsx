@@ -24,7 +24,7 @@ function todayEC() {
  */
 export default function PrintCartilla({ child, subtitle, rightMetaLines = [], children }) {
   return (
-    <div id="print-area" className="cartilla">
+    <div id="print-area" className="cartilla mt-5">
       <div className="cartilla-header avoid-break">
         <div className="cartilla-logo">CS</div>
 
