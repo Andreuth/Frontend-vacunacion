@@ -1,0 +1,193 @@
+/* =========================
+   CARTILLA - PRINT STYLES
+   ========================= */
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+:root {
+  --ink: #111;
+  --muted: #666;
+  --line: #d9d9d9;
+}
+
+@media print {
+  /* Oculta todo */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Solo se imprime lo que tenga id="print-area" */
+  #print-area,
+  #print-area * {
+    visibility: visible !important;
+  }
+
+  /* El área de impresión se posiciona arriba */
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Quita sombras y fondos de bootstrap */
+  .card,
+  .shadow,
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  /* Evitar cortar tarjetas / tablas */
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Tablas más “documento” */
+  table {
+    width: 100%;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid var(--line) !important;
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+    color: var(--ink) !important;
+    vertical-align: top !important;
+  }
+
+  th {
+    background: #f2f2f2 !important;
+    font-weight: 700 !important;
+  }
+
+  /* Badges como texto normal */
+  .badge {
+    border: 1px solid var(--line) !important;
+    background: #fff !important;
+    color: var(--ink) !important;
+    padding: 2px 6px !important;
+    font-size: 10.5px !important;
+  }
+
+  /* Links sin colores */
+  a {
+    color: var(--ink) !important;
+    text-decoration: none !important;
+  }
+}
+
+/* =========================
+   CARTILLA COMPONENT STYLES
+   (para pantalla y print)
+   ========================= */
+
+.cartilla {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--ink);
+}
+
+.cartilla-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.cartilla-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.cartilla-title {
+  line-height: 1.1;
+}
+
+.cartilla-title h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.cartilla-title .sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.cartilla-meta {
+  margin-left: auto;
+  text-align: right;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cartilla-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cartilla-box {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.cartilla-box h3 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  color: #222;
+  letter-spacing: .2px;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 6px 10px;
+  font-size: 11.5px;
+}
+
+.kv .k {
+  color: var(--muted);
+}
+
+.section-title {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.small-note {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+.sign-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.sign {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}

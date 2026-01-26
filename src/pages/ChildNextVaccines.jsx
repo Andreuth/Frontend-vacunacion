@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../api/axios";
+import PrintCartilla from "../components/PrintCartilla";
 
 function fmtDate(iso) {
   if (!iso) return "-";
@@ -18,13 +19,11 @@ function EstadoBadge({ estado }) {
   return <span className={`badge ${late ? "text-bg-danger" : "text-bg-success"} rounded-pill`}>{estado}</span>;
 }
 
-function Pill({ children, tone = "secondary" }) {
-  return <span className={`badge text-bg-${tone} rounded-pill`}>{children}</span>;
-}
-
 export default function ChildNextVaccines() {
   const { childId } = useParams();
+
   const [items, setItems] = useState([]);
+  const [child, setChild] = useState(null);
   const [error, setError] = useState("");
 
   const [q, setQ] = useState("");
@@ -34,8 +33,12 @@ export default function ChildNextVaccines() {
     (async () => {
       setError("");
       try {
-        const res = await api.get(`/children/${childId}/next-vaccines`);
-        setItems(res.data.items || []);
+        const [nextRes, childRes] = await Promise.all([
+          api.get(`/children/${childId}/next-vaccines`),
+          api.get(`/children/${childId}`), // ✅ para datos del niño en la cartilla
+        ]);
+        setItems(nextRes.data.items || []);
+        setChild(childRes.data);
       } catch (e) {
         setError(e?.response?.data?.detail || "Error cargando próximas vacunas");
       }
@@ -62,7 +65,6 @@ export default function ChildNextVaccines() {
       });
     }
 
-    // orden por fecha recomendada (si existe)
     return [...list].sort((a, b) => String(a.fecha_recomendada || "").localeCompare(String(b.fecha_recomendada || "")));
   }, [items, q, estado]);
 
@@ -70,22 +72,20 @@ export default function ChildNextVaccines() {
     <>
       <Navbar />
       <div className="container py-4">
+        {/* UI normal (no se imprime porque print.css imprime solo #print-area) */}
         <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
             <div className="text-muted small">Próximas vacunas</div>
             <h4 className="mb-1">Pendientes y recomendadas</h4>
-            <div className="d-flex gap-2 flex-wrap">
-              <Pill tone="primary">Total: {stats.total}</Pill>
-              <Pill tone="danger">Atrasadas: {stats.atrasadas}</Pill>
-              <Pill tone="success">Al día: {stats.alDia}</Pill>
-              <Pill tone="secondary">Niño ID: {childId}</Pill>
+            <div className="text-muted small">
+              Total: <strong>{stats.total}</strong> • Atrasadas: <strong>{stats.atrasadas}</strong> • Al día: <strong>{stats.alDia}</strong>
             </div>
           </div>
 
           <div className="d-flex gap-2 flex-wrap">
-            <button className="btn btn-outline-secondary btn-sm" onClick={() => window.print()}>
+            <button className="btn btn-outline-secondary btn-sm" onClick={() => window.print()} disabled={!child}>
               <i className="bi bi-printer me-1" />
-              Imprimir
+              Imprimir cartilla
             </button>
             <Link className="btn btn-outline-dark btn-sm" to="/representative">
               Volver
@@ -93,18 +93,12 @@ export default function ChildNextVaccines() {
           </div>
         </div>
 
-        {/* filtros */}
-        <div className="card border-0 shadow-sm mb-4" style={{ background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 60%)" }}>
+        <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
             <div className="row g-2 align-items-end">
               <div className="col-md-7">
                 <label className="form-label small text-muted mb-1">Buscar</label>
-                <input
-                  className="form-control"
-                  placeholder="Ej: pentavalente, dosis 2, 6 meses..."
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
+                <input className="form-control" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ej: polio, dosis 2, 6 meses..." />
               </div>
               <div className="col-md-5">
                 <label className="form-label small text-muted mb-1">Estado</label>
@@ -114,15 +108,6 @@ export default function ChildNextVaccines() {
                   <option value="AL_DIA">Al día</option>
                 </select>
               </div>
-            </div>
-
-            <div className="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-              <div className="text-muted small">
-                Mostrando <strong>{filtered.length}</strong> de {items.length}
-              </div>
-              <button className="btn btn-outline-secondary btn-sm" onClick={() => { setQ(""); setEstado("ALL"); }}>
-                Limpiar filtros
-              </button>
             </div>
           </div>
         </div>
@@ -152,7 +137,6 @@ export default function ChildNextVaccines() {
                       <td><EstadoBadge estado={x.estado} /></td>
                     </tr>
                   ))}
-
                   {filtered.length === 0 && !error && (
                     <tr>
                       <td colSpan="5" className="text-muted text-center py-4">
@@ -163,12 +147,51 @@ export default function ChildNextVaccines() {
                 </tbody>
               </table>
             </div>
-
-            <div className="text-muted small mt-2">
-              Nota: “Atrasada” significa que la fecha recomendada ya pasó.
-            </div>
           </div>
         </div>
+
+        {/* ====== SOLO ESTO SE IMPRIME ====== */}
+        {child && (
+          <PrintCartilla
+            child={child}
+            subtitle="Listado de próximas vacunas (pendientes/recomendadas)"
+            rightMetaLines={[
+              `Niño ID: ${childId}`,
+              `Atrasadas: ${stats.atrasadas} | Total: ${stats.total}`,
+            ]}
+          >
+            <div className="section-title">Próximas vacunas</div>
+            <div className="avoid-break">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vacuna</th>
+                    <th>Dosis</th>
+                    <th>Edad (meses)</th>
+                    <th>Fecha recomendada</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(items || []).map((x) => (
+                    <tr key={x.schedule_id}>
+                      <td><strong>{x.vaccine_nombre}</strong></td>
+                      <td>{x.dosis_numero}</td>
+                      <td>{x.edad_objetivo_meses}</td>
+                      <td>{fmtDate(x.fecha_recomendada)}</td>
+                      <td>{x.estado}</td>
+                    </tr>
+                  ))}
+                  {(items || []).length === 0 && (
+                    <tr>
+                      <td colSpan="5">No hay vacunas pendientes.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </PrintCartilla>
+        )}
       </div>
     </>
   );
