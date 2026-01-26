@@ -33,12 +33,20 @@ export default function ChildNextVaccines() {
     (async () => {
       setError("");
       try {
-        const [nextRes, childRes] = await Promise.all([
+        const [nextRes, myChildrenRes] = await Promise.all([
           api.get(`/children/${childId}/next-vaccines`),
-          api.get(`/children/${childId}`), // ✅ para datos del niño en la cartilla
+          api.get(`/children/my`), // ✅ aquí tomamos datos del niño
         ]);
+
         setItems(nextRes.data.items || []);
-        setChild(childRes.data);
+
+        const found = (myChildrenRes.data || []).find((c) => String(c.id) === String(childId));
+        setChild(found || null);
+
+        if (!found) {
+          // No rompe la página, solo avisa
+          console.warn("No se encontró el niño en /children/my");
+        }
       } catch (e) {
         setError(e?.response?.data?.detail || "Error cargando próximas vacunas");
       }
@@ -72,7 +80,7 @@ export default function ChildNextVaccines() {
     <>
       <Navbar />
       <div className="container py-4">
-        {/* UI normal (no se imprime porque print.css imprime solo #print-area) */}
+        {/* UI normal (no se imprime; print.css imprime solo #print-area) */}
         <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
             <div className="text-muted small">Próximas vacunas</div>
@@ -98,7 +106,12 @@ export default function ChildNextVaccines() {
             <div className="row g-2 align-items-end">
               <div className="col-md-7">
                 <label className="form-label small text-muted mb-1">Buscar</label>
-                <input className="form-control" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ej: polio, dosis 2, 6 meses..." />
+                <input
+                  className="form-control"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Ej: polio, dosis 2, 6 meses..."
+                />
               </div>
               <div className="col-md-5">
                 <label className="form-label small text-muted mb-1">Estado</label>
