@@ -1,50 +1,72 @@
-SISCONI – Frontend
+📘  Frontend SISCONI (React)
 
-Frontend del sistema SISCONI desarrollado con React y Bootstrap.
+Frontend del sistema SISCONI para el control de vacunación infantil.
+Incluye paneles diferenciados para Administrador, Pediatra y Representante.
 
-TECNOLOGÍAS
-- React (Vite)
-- Axios
-- React Router DOM
-- Bootstrap 5
+🛠 Tecnologías
 
-INSTALACIÓN
-1. Instalar dependencias
-   npm install
+React
 
-2. Ejecutar
-   npm run dev
+Vite
 
-Servidor:
+Bootstrap
+
+Axios
+
+React Router DOM
+
+🔐 Variables de entorno
+
+Crear archivo .env en la carpeta frontend/:
+
+VITE_API_URL=http://localhost:8000
+
+En producción (Vercel):
+
+VITE_API_URL=https://back-sisconi.com
+
+🚧 1. Desarrollo con Docker (Tema 4.2)
+
+Desde la raíz del proyecto:
+
+docker compose up -d --build
+docker compose ps
+docker compose logs -f frontend
+
+Frontend disponible en:
 http://localhost:5173
 
-CONEXIÓN BACKEND
-En src/api/axios.js:
-baseURL: http://127.0.0.1:8000
+💻 2. Desarrollo local sin Docker
 
-FLUJO DE USUARIOS
-ADMIN -> /admin
-PEDIATRA -> /pediatric
-REPRESENTANTE -> /representative
+cd frontend
+npm install
+npm run dev
 
-FUNCIONALIDADES
-ADMIN:
-- Gestión de usuarios
-- Gestión de vacunas
-- Supervisión general
+Abrir en el navegador:
+http://localhost:5173
 
-PEDIATRA:
-- Registro rápido de niños
-- Creación de visitas
-- Aplicación de vacunas
+🚀 3. Producción en la nube (Vercel)
 
-REPRESENTANTE:
-- Consulta de hijos
-- Historial
-- Próximas vacunas
+El frontend está desplegado en Vercel como parte del despliegue en producción.
 
-IMPRESIÓN
-Las vistas incluyen botón imprimir usando window.print().
+Configuración en Vercel
 
-PROYECTO
-Sistema académico para la digitalización del control de vacunación infantil.
+En Project Settings → Environment Variables:
+
+VITE_API_URL = https://back-sisconi.com
+
+Luego realizar redeploy.
+
+🔗 Comunicación Frontend – Backend
+
+Frontend: Vercel (HTTPS)
+
+Backend: Ubuntu Server (HTTPS mediante Cloudflare)
+
+Comunicación vía Axios
+
+CORS configurado en FastAPI
+
+👥 Autores
+
+Grupo F SISCONI – Aplicaciones Web II
